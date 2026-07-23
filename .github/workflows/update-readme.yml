@@ -2,7 +2,7 @@ name: Auto Update README
 
 on:
   schedule:
-    # Runs every hour
+    # Runs every hour (UTC)
     - cron: "0 * * * *"
   workflow_dispatch:
 
@@ -19,10 +19,10 @@ jobs:
 
       - name: Decide whether to update
         id: decide
+        shell: bash
         run: |
-          # Approximately 70% chance to update.
-          # With 24 hourly runs, this averages about 17 updates/day.
-          if [ $((RANDOM % 100)) -lt 70 ]; then
+          # 70% chance to update
+          if (( RANDOM % 100 < 70 )); then
             echo "update=true" >> "$GITHUB_OUTPUT"
           else
             echo "update=false" >> "$GITHUB_OUTPUT"
@@ -34,27 +34,56 @@ jobs:
 
       - name: Update README
         if: steps.decide.outputs.update == 'true'
+        shell: bash
         run: |
+          quotes=(
+            "Talk is cheap. Show me the code. — Linus Torvalds"
+            "Programs must be written for people to read. — Harold Abelson"
+            "First, solve the problem. Then, write the code. — John Johnson"
+            "Simplicity is the soul of efficiency. — Austin Freeman"
+            "Make it work, make it right, make it fast. — Kent Beck"
+            "Code never lies, comments sometimes do. — Ron Jeffries"
+            "The best error message is the one that never shows up. — Thomas Fuchs"
+            "Deleted code is debugged code. — Jeff Sickel"
+            "Premature optimization is the root of all evil. — Donald Knuth"
+            "Experience is the name everyone gives to their mistakes. — Oscar Wilde"
+            "Walking on water and developing software from a specification are easy if both are frozen. — Edward V. Berard"
+            "Before software can be reusable it first has to be usable. — Ralph Johnson"
+            "The function of good software is to make the complex appear simple. — Grady Booch"
+            "Fix the cause, not the symptom. — Steve Maguire"
+            "Testing leads to failure, and failure leads to understanding. — Burt Rutan"
+            "Any fool can write code that a computer can understand. Good programmers write code that humans can understand. — Martin Fowler"
+            "The only way to learn a new programming language is by writing programs in it. — Dennis Ritchie"
+            "Truth can only be found in one place: the code. — Robert C. Martin"
+            "Good code is its own best documentation. — Steve McConnell"
+            "Knowledge is power. — Francis Bacon"
+          )
+
+          quote=${quotes[$((RANDOM % ${#quotes[@]}))]}
+
+          random_number=$((10000 + RANDOM))
+
           cat > README.md <<EOF
           # Daily Up
 
-          This README is automatically updated by GitHub Actions.
+          🤖 This README is automatically updated by GitHub Actions.
 
           ## Last Update (UTC)
 
-          $(date -u)
+          $(date -u +"%A, %d %B %Y %H:%M:%S UTC")
 
           ## Random Number
 
-          $RANDOM
+          $random_number
 
-          ## Random Quote
+          ## Random Programming Quote
 
-          > Code is like humor. When you have to explain it, it's bad.
+          > $quote
           EOF
 
       - name: Commit and Push
         if: steps.decide.outputs.update == 'true'
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -66,5 +95,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "docs: auto update README"
+          git commit -m "docs: auto update README ($(date -u +'%Y-%m-%d %H:%M UTC'))"
           git push
