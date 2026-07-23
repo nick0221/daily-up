@@ -1,9 +1,9 @@
-name: Update README
+name: Auto Update README
 
 on:
   schedule:
-    # 5 times a day
-    - cron: "0 0,5,10,15,20 * * *"
+    # Runs every hour
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -14,17 +14,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Generate README
+      - name: Decide whether to update
+        id: decide
+        run: |
+          # Approximately 70% chance to update.
+          # With 24 hourly runs, this averages about 17 updates/day.
+          if [ $((RANDOM % 100)) -lt 70 ]; then
+            echo "update=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "update=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip this run
+        if: steps.decide.outputs.update == 'false'
+        run: echo "Skipping this scheduled run."
+
+      - name: Update README
+        if: steps.decide.outputs.update == 'true'
         run: |
           cat > README.md <<EOF
           # Daily Up
 
           This README is automatically updated by GitHub Actions.
 
-          ## Last Update
+          ## Last Update (UTC)
 
           $(date -u)
 
@@ -32,12 +48,13 @@ jobs:
 
           $RANDOM
 
-          ## Quote
+          ## Random Quote
 
           > Code is like humor. When you have to explain it, it's bad.
           EOF
 
       - name: Commit and Push
+        if: steps.decide.outputs.update == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -45,7 +62,7 @@ jobs:
           git add README.md
 
           if git diff --cached --quiet; then
-            echo "No changes"
+            echo "No changes to commit."
             exit 0
           fi
 
